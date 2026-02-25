@@ -3,12 +3,11 @@ import { Link, useNavigate } from 'react-router-dom';
 import UserContext from '../context/UserContext';
 
 function Navbar() {
-  const { user, setUser } = useContext(UserContext);
+  const { user, setUser, supabase } = useContext(UserContext);
   const navigate = useNavigate();
-  const [isMenuOpen, setIsMenuOpen] = useState(false);
 
   const handleLogout = async () => {
-    const { error } = await user.supabase.auth.signOut();
+    const { error } = await supabase.auth.signOut();
     if (!error) {
       setUser(null);
       navigate('/login');

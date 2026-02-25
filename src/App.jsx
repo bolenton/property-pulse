@@ -20,7 +20,6 @@ function App() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Check for existing auth state
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       setUser(user);
@@ -29,7 +28,6 @@ function App() {
 
     checkAuth();
 
-    // Listen for auth changes
     const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
       setUser(session?.user || null);
     });
@@ -39,27 +37,29 @@ function App() {
     };
   }, []);
 
-  // Protected route component
   const ProtectedRoute = ({ children }) => {
     if (loading) {
-      return <div>Loading...</div>;
+      return <div className="flex items-center justify-center min-h-screen">Loading...</div>;
     }
     
     return user ? children : <Navigate to="/login" replace />;
   };
 
+  // Show navbar only when user is logged in
+  const showNavbar = user && !loading;
+
   if (loading) {
-    return <div>Loading...</div>;
+    return <div className="flex items-center justify-center min-h-screen bg-gray-50">Loading...</div>;
   }
 
   return (
     <UserContext.Provider value={{ user, setUser, supabase }}>
       <Router>
         <div className="min-h-screen bg-gray-50">
-          <Navbar />
-          <main className="container mx-auto px-4 py-8">
+          {showNavbar && <Navbar />}
+          <main className={showNavbar ? 'container mx-auto px-4 py-8' : ''}>
             <Routes>
-              <Route path="/login" element={<Login />} />
+              <Route path="/login" element={user ? <Navigate to="/dashboard" replace /> : <Login />} />
               <Route path="/dashboard" element={
                 <ProtectedRoute>
                   <Dashboard />
