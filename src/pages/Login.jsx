@@ -1,15 +1,16 @@
-import { useState, useContext } from 'react';
+import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import UserContext from '../context/UserContext';
+import { useUser } from '../context/UserContext';
+import { supabase } from '../lib/supabase';
 
 function Login() {
+  const { setUser } = useUser();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isSignUp, setIsSignUp] = useState(false);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const { setUser, supabase } = useContext(UserContext);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
