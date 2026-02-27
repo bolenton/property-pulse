@@ -93,8 +93,15 @@ Tables (see `supabase/schema.sql`):
 
 ### Key Columns
 
+**profiles:**
+- `id` - UUID (FK to auth.users)
+- `name` - User's display name
+- `email` - User's email
+- `phone` - For SMS notifications
+
 **criteria:**
-- `user_id` - UUID (FK to auth.users)
+- `id` - UUID (auto-generated)
+- `user_id` - UUID (FK to profiles)
 - `name` - Display name for criteria
 - `property_type` - house, apartment, condo, etc.
 - `location` - City/zip/county
@@ -103,13 +110,20 @@ Tables (see `supabase/schema.sql`):
 - `keywords` - Comma-separated signals (e.g., "assisted living, ADA")
 - `sources` - Array (zillow, redfin)
 - `active` - Boolean (runs in background scan)
-- `ai_suggestions` - JSONB (AI analysis results)
+- `last_scanned_at` - Last time scan ran
+- `created_at` - Creation timestamp
 
 **matches:**
+- `id` - UUID
 - `criteria_id` - FK to criteria
 - `property` - JSONB (address, price, beds, baths, source, etc.)
-- `confidence` - high, medium, low
 - `match_reason` - Why it matched
+- `confidence` - high, medium, low
+- `confidence_reason` - Explanation of confidence score
+- `search_strategy` - How it was found
+- `sources_searched` - Which sources were checked
+- `found_at` - When match was found
+- `notified` - Whether user was notified
 
 ---
 
