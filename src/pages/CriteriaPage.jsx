@@ -19,7 +19,8 @@ function CriteriaPage() {
     keywords: '',
     sources: ['zillow', 'redfin'],
     min_confidence: 'all',
-    active: true
+    active: true,
+    notify_days: 7 // Default to 7 days
   });
 
   useEffect(() => {
@@ -94,7 +95,7 @@ function CriteriaPage() {
           sources: form.sources,
           min_confidence: form.min_confidence,
           active: form.active,
-          ai_suggestions: aiSuggestions
+          notify_until: new Date(Date.now() + form.notify_days * 24 * 60 * 60 * 1000).toISOString()
         })
         .select();
 
@@ -314,6 +315,21 @@ function CriteriaPage() {
               className="h-4 w-4 text-blue-600 border-gray-300 rounded"
             />
             <label className="ml-2 text-sm text-gray-700">Active (scan automatically)</label>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Notify for</label>
+            <select
+              name="notify_days"
+              value={form.notify_days}
+              onChange={handleChange}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md"
+            >
+              <option value={3}>3 days</option>
+              <option value={7}>7 days</option>
+              <option value={14}>14 days</option>
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Auto-stop scanning after this period</p>
           </div>
           
           <div className="flex justify-end">

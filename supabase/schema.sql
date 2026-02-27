@@ -28,6 +28,7 @@ CREATE TABLE IF NOT EXISTS criteria (
   sources TEXT[],
   min_confidence TEXT DEFAULT 'all',
   active BOOLEAN DEFAULT true,
+  notify_until TIMESTAMPTZ, -- User-specified end date for notifications (max 2 weeks)
   last_scanned_at TIMESTAMPTZ,
   created_at TIMESTAMPTZ DEFAULT now()
 );
@@ -46,10 +47,23 @@ CREATE TABLE IF NOT EXISTS matches (
   notified BOOLEAN DEFAULT false
 );
 
+-- Notifications table
+CREATE TABLE IF NOT EXISTS notifications (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  user_id UUID REFERENCES profiles(id) ON DELETE CASCADE,
+  type TEXT NOT NULL,
+  title TEXT NOT NULL,
+  message TEXT,
+  match_id UUID REFERENCES matches(id),
+  sent_at TIMESTAMPTZ,
+  created_at TIMESTAMPTZ DEFAULT now()
+);
+
 -- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE criteria ENABLE ROW LEVEL SECURITY;
 ALTER TABLE matches ENABLE ROW LEVEL SECURITY;
+ALTER TABLE notifications ENABLE ROW LEVEL SECURITY;
 
 -- RLS Policies
 CREATE POLICY "Users can view own profile" ON profiles FOR SELECT USING (auth.uid() = id);
@@ -62,3 +76,14 @@ CREATE POLICY "Users can update own criteria" ON criteria FOR UPDATE USING (auth
 CREATE POLICY "Users can delete own criteria" ON criteria FOR DELETE USING (auth.uid() = user_id);
 
 CREATE POLICY "Users can view own matches" ON matches FOR SELECT USING (auth.uid() = (SELECT user_id FROM criteria WHERE id = matches.criteria_id));
+
+CREATE POLICY "Users can view own notifications" ON notifications FOR SELECT USING (auth.uid() = user_id);
+CREATE POLICY "Users can insert own notifications" ON notifications FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+-- Indexes for performance
+CREATE INDEX idx_criteria_user_id ON criteria(user_id);
+CREATE INDEX idx_criteria_active ON criteria(active);
+CREATE INDEX idx_criteria_notify_until ON criteria(notify_until);
+CREATE INDEX idx_matches_criteria_id ON matches(criteria_id);
+CREATE INDEX idx_matches_found_at ON matches(found_at DESC);
+CREATE INDEX idx_notifications_user_id ON notifications(user_id);
