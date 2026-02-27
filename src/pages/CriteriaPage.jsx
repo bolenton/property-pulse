@@ -1,6 +1,7 @@
 import { useState, useEffect, useContext } from 'react';
 import { useUser } from '../context/UserContext';
 import { supabase } from '../lib/supabase';
+import { analyzeCriteria } from '../lib/agent';
 
 function CriteriaPage() {
   const { user } = useUser();
@@ -55,6 +56,29 @@ function CriteriaPage() {
     
     setSaving(true);
     try {
+      // Build criteria object for AI analysis
+      const criteriaObj = {
+        name: form.name,
+        property_type: form.property_type,
+        location: form.location,
+        price_min: form.price_min ? parseInt(form.price_min) : null,
+        price_max: form.price_max ? parseInt(form.price_max) : null,
+        beds_min: form.beds_min ? parseInt(form.beds_min) : null,
+        baths_min: form.baths_min ? parseInt(form.baths_min) : null,
+        keywords: form.keywords
+      };
+
+      // Try to get AI suggestions
+      let aiSuggestions = null;
+      try {
+        const result = await analyzeCriteria(criteriaObj);
+        if (result && !result.error) {
+          aiSuggestions = result;
+        }
+      } catch (aiErr) {
+        console.warn('AI analysis failed:', aiErr);
+      }
+
       const { data, error } = await supabase
         .from('criteria')
         .insert({
@@ -69,7 +93,8 @@ function CriteriaPage() {
           keywords: form.keywords,
           sources: form.sources,
           min_confidence: form.min_confidence,
-          active: form.active
+          active: form.active,
+          ai_suggestions: aiSuggestions
         })
         .select();
 
@@ -90,7 +115,7 @@ function CriteriaPage() {
       });
       
       fetchCriteria();
-      alert('Criteria saved successfully!');
+      alert('Criteria saved successfully!' + (aiSuggestions ? ' AI suggestions applied.' : ''));
     } catch (err) {
       console.error('Error saving criteria:', err);
       alert('Error saving criteria: ' + err.message);
@@ -132,6 +157,18 @@ function CriteriaPage() {
                     {c.location} • ${c.price_min || 0} - ${c.price_max || 'Any'}
                     {c.beds_min && ` • ${c.beds_min}+ beds`}
                   </p>
+                  {c.ai_suggestions && c.ai_suggestions.suggestions && c.ai_suggestions.suggestions.length > 0 && (
+                    <div className="mt-2 p-2 bg-blue-50 rounded text-xs">
+                      <span className="font-medium">AI Suggestions:</span>
+                      <ul className="mt-1">
+                        {c.ai_suggestions.suggestions.slice(0, 2).map((s, i) => (
+                          <li key={i} className="text-blue-700">
+                            {s.suggested_value}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
                 </div>
                 <button
                   onClick={() => handleDelete(c.id)}

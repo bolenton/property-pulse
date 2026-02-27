@@ -2,12 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useUser } from '../context/UserContext';
 import { supabase } from '../lib/supabase';
+import { scanProperties } from '../lib/scanner';
 
 function Dashboard() {
   const { user } = useUser();
   const [criteria, setCriteria] = useState([]);
   const [matches, setMatches] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [scanning, setScanning] = useState(false);
 
   useEffect(() => {
     if (user) {
@@ -47,6 +49,43 @@ function Dashboard() {
     }
   };
 
+  const handleRunScan = async () => {
+    if (criteria.length === 0) {
+      alert('Add some criteria first!');
+      return;
+    }
+    
+    setScanning(true);
+    try {
+      // For demo, run scan on the first criteria
+      const scanCriteria = criteria[0];
+      const results = await scanProperties(scanCriteria);
+      
+      // Save matches to database
+      for (const match of results) {
+        const { error } = await supabase.from('matches').insert({
+          criteria_id: scanCriteria.id,
+          property: match.property,
+          confidence: match.confidence,
+          match_reason: match.match_reason,
+          search_strategy: match.search_strategy
+        });
+        
+        if (error && !error.message.includes('duplicate')) {
+          console.warn('Match insert error:', error);
+        }
+      }
+      
+      alert(`Scan complete! Found ${results.length} potential matches.`);
+      fetchData(); // Refresh the data
+    } catch (err) {
+      console.error('Scan error:', err);
+      alert('Error running scan');
+    } finally {
+      setScanning(false);
+    }
+  };
+
   if (loading) {
     return <div className="p-8 text-center">Loading...</div>;
   }
@@ -57,9 +96,18 @@ function Dashboard() {
       
       <div className="bg-white shadow rounded-lg p-6 mb-6">
         <h2 className="text-xl font-semibold text-gray-800 mb-4">Welcome, {user?.email?.split('@')[0] || 'User'}!</h2>
-        <p className="text-gray-600">
+        <p className="text-gray-600 mb-4">
           You have {criteria.length} active search criteria and {matches.length} total matches.
         </p>
+        {criteria.length > 0 && (
+          <button
+            onClick={handleRunScan}
+            disabled={scanning}
+            className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 disabled:opacity-50"
+          >
+            {scanning ? 'Scanning...' : 'Run Property Scan'}
+          </button>
+        )}
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
